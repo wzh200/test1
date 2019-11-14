@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title></title>
+  <script src="https://unpkg.com/vue/dist/vue.js"></script>
+  <script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
+  <!-- 引入样式 -->
+  <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+  <!-- 引入组件库 -->
+  <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.staticfile.org/vue-resource/1.5.1/vue-resource.min.js"></script>
+  <style type="text/css">
+    #container2{
+      /*height: 800px;*/
+    }
+    .el-menu-vertical-demo:not(.el-menu--collapse) {
+      width: 200px;
+      /*min-height:727px ;*/
+    }
+    .grid-content .icon{
+      margin-top: 10px;
+
+    }
+    .bg-purple h1{
+      font-family: Helvetica Neue;
+      line-height: 1;
+      color: white;
+    }
+    #row-header{
+      background: #409EFF;
+      margin-bottom: 10px;
+      border-radius: 10px;
+      min-height: 36px;
+    }
+    .page{
+      height: 727px;
+    }
+    .page h1{
+      text-align: center;
+      font-size: 1.5em;
+    }
+  </style>
+</head>
+
+<body>
+<div id="app">
+  <el-container>
+      <!--页头-->
+    <el-header id="row-header">
+      <el-row >
+        <el-col :span="6">
+          <div class="grid-content bg-purple">
+            <h1><i class="el-icon-notebook-2"></i>MyBook图书管理系统</h1>
+          </div>
+        </el-col>
+        <el-col :span="1" :offset="17"><div class="grid-content bg-purple">
+          <el-dropdown>
+            <el-avatar icon="el-icon-user-solid" class="icon"></el-avatar>
+            <el-dropdown-menu slot="dropdown">
+              <el-dropdown-item icon="el-icon-close">注销</el-dropdown-item>
+            </el-dropdown-menu>
+          </el-dropdown>
+
+        </div></el-col>
+      </el-row>
+    </el-header>
+    <el-container id="container2">
+
+        <!--侧边导航栏-->
+      <el-aside >
+        <el-switch
+                v-model="isCollapse"
+                active-text="详情"
+                inactive-text="图标">
+        </el-switch>
+        <el-menu default-active="this.$router.path" class="el-menu-vertical-demo"  :collapse="!isCollapse" router>
+          <el-menu-item index="/user">
+            <i class="el-icon-user-solid"></i>
+            <span slot="title">用户管理</span>
+          </el-menu-item>
+          <el-menu-item index="/book">
+            <i class="el-icon-s-management"></i>
+            <span slot="title">图书管理</span>
+          </el-menu-item>
+          <el-menu-item index="/cate">
+            <i class="el-icon-menu"></i>
+            <span slot="title">图书类别管理</span>
+          </el-menu-item>
+        </el-menu>
+      </el-aside>
+
+
+      <el-main>
+
+        <router-view></router-view>
+
+      </el-main>
+    </el-container>
+  </el-container>
+
+</div>
+        <!--用户管理-->
+<template id="user">
+  <el-tabs type="border-card" class="page">
+    <el-tab-pane label="用户管理">
+      <div>
+
+        <h1>用 户 管 理</h1>
+
+        <el-row>
+          <el-col :span="9" :offset="15">
+            <el-form :inline="true"  class="demo-form-inline">
+              <el-form-item>
+                <el-input v-model="sname" placeholder="请输入你想查询的用户名"></el-input>
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" @click="searchUsers" icon="el-icon-search">查询</el-button>
+              </el-form-item>
+            </el-form>
+          </el-col>
+        </el-row>
+
+        <el-row>
+          <el-col :span="18" :offset="3">
+            <el-table stripe :data="users">
+              <el-table-column label="姓名" prop="name">
+              </el-table-column>
+              <el-table-column label="密码" prop="pass">
+              </el-table-column>
+              <el-table-column label="性别" prop="sex">
+              </el-table-column>
+              <el-table-column label="邮箱" prop="email">
+              </el-table-column>
+              <el-table-column label="操作">
+                <template slot-scope="scope">
+                  <el-button type="primary" icon="el-icon-edit" circle title="修改" @click="toUpuser(scope.row)"></el-button>
+                  <el-button type="danger" icon="el-icon-delete" circle title="删除" @click="deleteUser(scope.row.id)"></el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            <br/>
+              <div class="pagination">
+                  <el-pagination
+                          background
+                          @size-change="handleSizeChange"
+                          @current-change="handleCurrentChange"
+                          :current-page="pageConf.pageCode"
+                          :page-sizes="pageConf.pageOption"
+                          :page-size="pageConf.pageSize"
+                          layout="total, sizes, prev, pager, next, jumper"
+                          :total="pageConf.totalPage">
+                  </el-pagination>
+              </div>
+
+            <el-drawer
+                    title="用 户 修 改"
+                    :before-close="handleClose"
+                    :visible.sync="dialog"
+                    direction="rtl"
+            >
+              <div class="demo-drawer__content">
+                <el-form :model="upuser" :rules="upRules" ref="upuser" label-width="80px" class="demo-ruleForm" >
+                  <el-form-item label="姓名" prop="name">
+                    <el-input v-model="upuser.name" placeholder="请输入用户名称"></el-input>
+                    <el-input v-model="upuser.id" v-show="false"></el-input>
+                  </el-form-item>
+                  <br />
+                  <el-form-item label="密码" prop="pass">
+                    <el-input type="password" v-model="upuser.pass" autocomplete="off"></el-input>
+                  </el-form-item>
+                  <el-form-item label="确认密码" prop="checkPass">
+                    <el-input type="password" v-model="upuser.checkPass" autocomplete="off"></el-input>
+                  </el-form-item>
+                  <br />
+                  <el-form-item label="性别" prop="sex">
+                    <el-select v-model="upuser.sex" placeholder="请选择性别">
+                      <el-option label="男" value="man"></el-option>
+                      <el-option label="女" value="woman"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <br />
+                  <el-form-item label="邮箱" prop="email">
+                    <el-input v-model="upuser.email" placeholder="请输入用户邮箱"></el-input>
+                  </el-form-item>
+                  <br />
+                  <el-form-item>
+                    <el-button type="primary" @click="updateUser('upuser')">修改</el-button>
+                    <el-button @click="reup('upuser')">重置</el-button>
+                  </el-form-item>
+                </el-form>
+
+
+              </div>
+            </el-drawer>
+
+          </el-col>
+        </el-row>
+      </div>
+    </el-tab-pane>
+
+    <el-tab-pane label="添加用户">
+      <h1>添加用户</h1>
+      <el-row>
+        <el-col :span="18" :offset="3">
+          <el-form :model="adduser" :rules="addRules" ref="adduser" label-width="100px" class="demo-ruleForm" >
+            <el-form-item label="姓名" prop="name">
+              <el-input v-model="adduser.name" placeholder="请输入用户名称"></el-input>
+            </el-form-item>
+            <br />
+            <el-form-item label="密码" prop="pass">
+              <el-input type="password" v-model="adduser.pass" autocomplete="off"></el-input>
+            </el-form-item>
+            <el-form-item label="确认密码" prop="checkPass">
+              <el-input type="password" v-model="adduser.checkPass" autocomplete="off"></el-input>
+            </el-form-item>
+            <br />
+            <el-form-item label="性别" prop="sex">
+              <el-select v-model="adduser.sex" placeholder="请选择性别">
+                <el-option label="男" value="man"></el-option>
+                <el-option label="女" value="woman"></el-option>
+              </el-select>
+            </el-form-item>
+            <br />
+            <el-form-item label="邮箱" prop="email">
+              <el-input v-model="adduser.email" placeholder="请输入用户邮箱"></el-input>
+            </el-form-item>
+            <br />
+            <el-form-item>
+              <el-button type="primary" @click="addUser('adduser')">添加</el-button>
+              <el-button @click="resetForm('adduser')">重置</el-button>
+            </el-form-item>
+          </el-form>
+        </el-col>
+      </el-row>
+    </el-tab-pane>
+  </el-tabs>
+</template>
+
+</template>
+        <!--图书管理-->
+<template id="book">
+        <el-tabs type="border-card" class="page">
+            <el-tab-pane label="图书管理">
+                <div>
+
+                    <h1>图 书 管 理</h1>
+
+                    <el-row>
+                        <el-col :span="9" :offset="15">
+                            <el-form :inline="true"  class="demo-form-inline">
+                                <el-form-item>
+                                    <el-input v-model="sname" placeholder="请输入你想查询的图书名"></el-input>
+                                </el-form-item>
+                                <el-form-item>
+                                    <el-button type="primary" @click="searchBooks" icon="el-icon-search">查询</el-button>
+                                </el-form-item>
+                            </el-form>
+                        </el-col>
+                    </el-row>
+
+                    <el-row>
+                        <el-col :span="18" :offset="3">
+                            <el-table stripe :data="books">
+                                <el-table-column label="书名" prop="bname">
+                                </el-table-column>
+                                <el-table-column label="类别" prop="cname">
+                                </el-table-column>
+                                <el-table-column label="图片" >
+                                    <template scope="scope">
+                                        <img :src="scope.row.picture" class="picture" width="50" height="70"/>
+                                    </template>
+                                </el-table-column>
+                                <el-table-column label="操作">
+                                    <template slot-scope="scope">
+                                        <el-button type="primary" icon="el-icon-edit" circle title="修改" @click="toUpbook(scope.row)"></el-button>
+                                        <el-button type="danger" icon="el-icon-delete" circle title="删除" @click="deleteBook(scope.row.id)"></el-button>
+                                    </template>
+                                </el-table-column>
+                            </el-table>
+                            <br/>
+                            <div class="pagination">
+                                <el-pagination
+                                        background
+                                        @size-change="handleSizeChange"
+                                        @current-change="handleCurrentChange"
+                                        :current-page="pageConf.pageCode"
+                                        :page-sizes="pageConf.pageOption"
+                                        :page-size="pageConf.pageSize"
+                                        layout="total, sizes, prev, pager, next, jumper"
+                                        :total="pageConf.totalPage">
+                                </el-pagination>
+                            </div>
+
+                            <el-drawer
+                                    title="图 书 修 改"
+                                    :before-close="handleClose"
+                                    :visible.sync="dialog"
+                                    direction="rtl"
+                            >
+                                <div class="demo-drawer__content">
+                                    <el-form :model="upbook" :rules="upRules" ref="upbook" label-width="80px" class="demo-ruleForm" >
+                                        <el-form-item label="书名" prop="bname">
+                                            <el-input v-model="upbook.bname" placeholder="请输入图书名称"></el-input>
+                                        </el-form-item>
+                                        <br />
+                                        <el-form-item label="类别" prop="categoryId">
+                                            <el-select v-model="upbook.categoryId" placeholder="请选择类别">
+                                                <el-option v-for="cate in cates" :label="cate.category" :value="cate.id"></el-option>
+                                            </el-select>
+                                        </el-form-item>
+                                        <br />
+                                        <el-form-item label="图片" prop="picture">
+                                            <el-upload
+                                                    ref="upload"
+                                                    action="/book/upload"
+                                                    name="picture"
+                                                    :limit="1"
+                                                    :file-list="fileList"
+                                                    :on-exceed="onExceed"
+                                                    :before-upload="beforeUpload"
+                                                    :on-preview="handlePreview"
+                                                    :on-success="uphandleSuccess"
+                                                    :on-remove="handleRemove"
+                                                    class="upload-demo"
+                                                    drag>
+                                                <i class="el-icon-upload"></i>
+                                                <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+                                                <div class="el-upload__tip" slot="tip">只能上传JPG/GIF/PNG/BMP文件，且不超过2MB</div>
+                                            </el-upload>
+                                            <el-dialog :visible.sync="dialogVisible" :append-to-body="true">
+                                                <img width="100%" :src="upbook.picture" alt="">
+                                            </el-dialog>
+                                        </el-form-item>
+                                        <br />
+                                        <el-form-item>
+                                            <el-button type="primary" @click="updateBook('upbook')">修改</el-button>
+                                            <el-button @click="reup('upbook')">重置</el-button>
+                                        </el-form-item>
+                                    </el-form>
+
+
+                                </div>
+                            </el-drawer>
+
+                        </el-col>
+                    </el-row>
+                </div>
+            </el-tab-pane>
+
+            <el-tab-pane label="添加图书">
+                <h1>添加图书</h1>
+                <el-row>
+                    <el-col :span="18" :offset="3">
+                        <el-form :model="addbook" :rules="addRules" ref="addbook" label-width="100px" class="demo-ruleForm" >
+                            <el-form-item label="书名" prop="bname">
+                                <el-input v-model="addbook.bname" placeholder="请输入图书名称"></el-input>
+                                <el-input v-model="addbook.id" v-show="false"></el-input>
+                            </el-form-item>
+                            <br />
+                            <el-form-item label="类别" prop="categoryId">
+                                <el-select v-model="addbook.categoryId" placeholder="请选择类别">
+                                    <el-option v-for="cate in cates" :label="cate.category" :value="cate.id"></el-option>
+                                </el-select>
+                            </el-form-item>
+                            <br />
+                            <el-form-item label="图片" prop="picture">
+                                <el-upload
+                                        ref="upload"
+                                        action="/book/upload"
+                                        name="picture"
+                                        :limit="1"
+                                        :on-exceed="onExceed"
+                                        :before-upload="beforeUpload"
+                                        :on-preview="handlePreview"
+                                        :on-success="addhandleSuccess"
+                                        :on-remove="handleRemove"
+                                        class="upload-demo"
+                                        drag>
+                                    <i class="el-icon-upload"></i>
+                                    <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+                                    <div class="el-upload__tip" slot="tip">只能上传JPG/GIF/PNG/BMP文件，且不超过2MB</div>
+                                </el-upload>
+                                <el-dialog :visible.sync="dialogVisible">
+                                    <img width="100%" :src="addbook.picture" alt="">
+                                </el-dialog>
+                            </el-form-item>
+                            <br />
+                            <el-form-item>
+                                <el-button type="primary" @click="addBook('addbook')">添加</el-button>
+                                <el-button @click="resetForm('addbook')">重置</el-button>
+                            </el-form-item>
+                        </el-form>
+                    </el-col>
+                </el-row>
+            </el-tab-pane>
+        </el-tabs>
+    </template>
+
+</template>
+        <!--图书类别管理-->
+<template id="cate">
+    <el-tabs type="border-card" class="page">
+        <el-tab-pane label="类别管理">
+            <div>
+
+                <h1>类 别 管 理</h1>
+
+                <el-row>
+                    <el-col :span="9" :offset="15">
+                        <el-form :inline="true"  class="demo-form-inline">
+                            <el-form-item>
+                                <el-input v-model="sname" placeholder="请输入你想查询的类别名"></el-input>
+                            </el-form-item>
+                            <el-form-item>
+                                <el-button type="primary" @click="searchCates" icon="el-icon-search">查询</el-button>
+                            </el-form-item>
+                        </el-form>
+                    </el-col>
+                </el-row>
+
+                <el-row>
+                    <el-col :span="18" :offset="3">
+                        <el-table stripe :data="cates">
+                            <el-table-column label="类别" prop="category">
+                            </el-table-column>
+                            <el-table-column label="操作">
+                                <template slot-scope="scope">
+                                    <el-button type="primary" icon="el-icon-edit" circle title="修改" @click="toUpcate(scope.row)"></el-button>
+                                    <el-button type="danger" icon="el-icon-delete" circle title="删除" @click="deleteCate(scope.row.id)"></el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                        <br/>
+                        <div class="pagination">
+                            <el-pagination
+                                    background
+                                    @size-change="handleSizeChange"
+                                    @current-change="handleCurrentChange"
+                                    :current-page="pageConf.pageCode"
+                                    :page-sizes="pageConf.pageOption"
+                                    :page-size="pageConf.pageSize"
+                                    layout="total, sizes, prev, pager, next, jumper"
+                                    :total="pageConf.totalPage">
+                            </el-pagination>
+                        </div>
+
+                        <el-drawer
+                                title="类 别 修 改"
+                                :before-close="handleClose"
+                                :visible.sync="dialog"
+                                direction="rtl"
+                        >
+                            <div class="demo-drawer__content">
+                                <el-form :model="upcate" :rules="upRules" ref="upcate" label-width="80px" class="demo-ruleForm" >
+                                    <el-form-item label="类别" prop="name">
+                                        <el-input v-model="upcate.category" placeholder="请输入类别名称"></el-input>
+                                    </el-form-item>
+                                    <br />
+                                    <el-form-item>
+                                        <el-button type="primary" @click="updateCate('upcate')">修改</el-button>
+                                        <el-button @click="reup('upcate')">重置</el-button>
+                                    </el-form-item>
+                                </el-form>
+
+
+                            </div>
+                        </el-drawer>
+
+                    </el-col>
+                </el-row>
+            </div>
+        </el-tab-pane>
+
+        <el-tab-pane label="添加类别">
+            <h1>添加类别</h1>
+            <el-row>
+                <el-col :span="18" :offset="3">
+                    <el-form :model="addcate" :rules="addRules" ref="addcate" label-width="100px" class="demo-ruleForm" >
+                        <el-form-item label="类别" prop="category">
+                            <el-input v-model="addcate.category" placeholder="请输入类别名称"></el-input>
+                        </el-form-item>
+                        <br />
+                        <el-form-item>
+                            <el-button type="primary" @click="addCate('addcate')">添加</el-button>
+                            <el-button @click="resetForm('addcate')">重置</el-button>
+                        </el-form-item>
+                    </el-form>
+                </el-col>
+            </el-row>
+        </el-tab-pane>
+    </el-tabs>
+</template>
+
+</template>
+
+</body>
+<script type="text/javascript">
+
+  var user = Vue.extend({
+    template: '#user',
+    data() {
+      var validatePassUp = (rule, value, callback) => {
+        if (value === '') {
+          callback(new Error('请输入密码'));
+        } else {
+          if (this.upuser.checkPass !== '') {
+            this.$refs.upuser.validateField('checkPass');
+          }
+          callback();
+        }
+      };
+      var validatePassUp2 = (rule, value, callback) => {
+        if (value === '') {
+          callback(new Error('请再次输入密码'));
+        } else if (value !== this.upuser.pass) {
+          callback(new Error('两次输入密码不一致!'));
+        } else {
+          callback();
+        }
+      };
+      var validatePassAdd = (rule, value, callback) => {
+        if (value === '') {
+          callback(new Error('请输入密码'));
+        } else {
+          if (this.adduser.checkPass !== '') {
+            this.$refs.adduser.validateField('checkPass');
+          }
+          callback();
+        }
+      };
+      var validatePassAdd2 = (rule, value, callback) => {
+        if (value === '') {
+          callback(new Error('请再次输入密码'));
+        } else if (value !== this.adduser.pass) {
+          callback(new Error('两次输入密码不一致!'));
+        } else {
+          callback();
+        }
+      };
+      return {
+        sname: '',
+        dialog: false,
+        users: [],
+        adduser: {},
+        upuser: {},
+        reupuser:{},
+        search:{},
+        upRules: {
+          name: [
+            {required: true, message: '请输入活动名称', trigger: 'change'},
+            {min: 1, max: 5, message: '长度在 1到 5 个字符', trigger: 'change'}
+          ],
+          sex: [
+            {required: true, message: '请选择性别', trigger: 'change'}
+          ],
+          email: [
+            {type: 'email', required: true, message: '请输入正确的电子邮箱', trigger: 'change'}
+          ],
+          pass: [
+            {validator: validatePassUp, trigger: 'blur'}
+          ],
+          checkPass: [
+            {validator: validatePassUp2, trigger: 'blur'}
+          ]
+        },
+        addRules: {
+          name: [
+            {required: true, message: '请输入活动名称', trigger: 'change'},
+            {min: 1, max: 5, message: '长度在 1到 5 个字符', trigger: 'change'}
+          ],
+          sex: [
+            {required: true, message: '请选择性别', trigger: 'change'}
+          ],
+          email: [
+            {type: 'email', required: true, message: '请输入正确的电子邮箱', trigger: 'change'}
+          ],
+          pass: [
+            {validator: validatePassAdd, trigger: 'blur'}
+          ],
+          checkPass: [
+            {validator: validatePassAdd2, trigger: 'blur'}
+          ]
+        },
+          pageConf: {
+              //设置一些初始值(会被覆盖)
+              pageCode: 1, //当前页
+              pageSize: 4, //每页显示的记录数
+              totalPage: 7, //总记录数
+              pageOption: [3, 4, 5], //分页选项
+              handleCurrentChange: function () {
+                  console.log("页码改变了");
+              }
+          },
+      }
+    },
+    created: function () {
+      this.searchUsers();
+    },
+    mounted(){
+    },
+    methods: {
+        findByPage() {
+            axios.post('/user/findByPage', {params:[this.pageConf.pageCode, this.pageConf.pageSize,this.search]})
+                    .then(result => (
+                this.pageConf.totalPage = result.data.total,
+                this.users = result.data.rows
+        ))
+                    .catch(error => console.log(error));
+        },
+        //pageSize改变时触发的函数
+        handleSizeChange(val) {
+          this.pageConf.pageSize = val;
+            this.findByPage();
+        },
+        //当前页改变时触发的函数
+        handleCurrentChange(val) {
+          this.pageConf.pageCode = val;
+            this.findByPage();
+        },
+
+
+      deleteUser(id){
+        axios.post('/user/userDelete',{id:id})
+                .then(
+                        this.$message({
+                                          message: '删除成功！',
+                                          type: 'success'
+                                      }),
+                        this.searchUsers()
+                )
+                .catch(error => console.log(error));
+      },
+      updateUser(upuser){
+        this.$refs[upuser].validate((valid) => {
+          if (valid) {
+            axios.post('/user/userUpdate',{user:this.upuser})
+                    .then(
+                            this.dialog=false,
+                            this.$message({
+                              message: '修改成功！',
+                              type: 'success'
+                            }),
+                            this.searchUsers()
+                    )
+                    .catch(error => console.log(error));
+          } else {
+            console.log('error submit!!');
+            return false;
+          }
+        });
+      },
+      addUser(adduser){
+        this.$refs[adduser].validate((valid) => {
+          if (valid) {
+            axios.post('/user/userAdd',{user:this.adduser})
+                    .then(
+                            this.$alert('添加成功', '成功', {
+                              confirmButtonText: '确定',
+                              callback: action => {
+                                        this.searchUsers(),
+                                        this.resetForm(adduser)
+                              }
+                            })
+
+                    )
+                    .catch(error => console.log(error));
+          } else {
+            console.log('error submit!!');
+            return false;
+          }
+        });
+      },
+      searchUsers() {
+          axios.post('/user/userSearch', {sname: this.sname})
+                  .then(res => (this.users=res.data,this.search=this.sname,this.findByPage(),this.handleCurrentChange(this.pageConf.pageCode)))
+                  .catch(function (error) {
+                    console.log(error);
+                  });
+
+      },
+      toUpuser(user) {
+        axios.post('/user/userGet', {user:user})
+                .then(
+                        res => (this.upuser = res.data),
+                        this.dialog = true,
+
+                )
+                .catch(function (error) {
+                  console.log(error);
+                });
+      },
+      reup(){
+        axios.post('/user/userGet', {user: this.upuser})
+                .then(
+                        res => (this.upuser = res.data),
+
+                )
+                .catch(function (error) {
+                  console.log(error);
+                });
+      },
+      resetForm(formName) {
+          this.$refs[formName].resetFields();
+      },
+      handleClose(done) {
+        this.$confirm('确定要退出修改吗？')
+                .then(_ => {
+                  this.searchUsers();
+                  setTimeout(() => {
+                    done();
+                  });
+                })
+                .catch(_ => {
+                });
+      }
+    }
+  });
+  //
+  // Vue.http.options.emulateJSON = true;
+  var book = Vue.extend({
+      template: '#book',
+      data() {
+          return {
+              cates:[],
+              //文件上传的参数
+              dialogVisible: false,
+              //图片列表（用于在上传组件中回显图片）
+              fileList: [{name: '原图片', url: ''}],
+              sname: '',
+              dialog: false,
+              books: [],
+              addbook: {},
+              upbook: {},
+              reupbook:{},
+              search:{},
+
+              upRules: {
+                  bname: [
+                      {required: true, message: '请输入图书名称', trigger: 'change'}
+                  ],
+                  categoryId: [
+                      {required: true, message: '请选择类别', trigger: 'change'}
+                  ],
+              },
+              addRules: {
+                  bname: [
+                      {required: true, message: '请输入图书名称', trigger: 'change'}
+                  ],
+                  categoryId: [
+                      {required: true, message: '请选择类别', trigger: 'change'}
+                  ],
+              },
+              pageConf: {
+                  //设置一些初始值(会被覆盖)
+                  pageCode: 1, //当前页
+                  pageSize: 3, //每页显示的记录数
+                  totalPage: 7, //总记录数
+                  pageOption: [2, 3, 4], //分页选项
+                  handleCurrentChange: function () {
+                      console.log("页码改变了");
+                  }
+              },
+          }
+      },
+      created: function () {
+          this.searchBooks();
+      },
+      mounted(){
+          this.getAllCate();
+      },
+      methods: {
+          getAllCate(){
+            axios.get('/book/getAllCate')
+                .then(res => (this.cates=res.data))
+                .catch(error => console.log(error))
+          },
+          //文件上传成功的钩子函数
+          uphandleSuccess(res, file) {
+              this.$message({
+                  type: 'success',
+                  message: '图片上传成功',
+                  duration: 6000
+              });
+
+                  this.upbook.picture = file.response; //将返回的文件储存路径赋值picture字段
+
+          },
+          addhandleSuccess(res, file) {
+              this.$message({
+                  type: 'success',
+                  message: '图片上传成功',
+                  duration: 6000
+              });
+                  this.addbook.picture = file.response; //将返回的文件储存路径赋值picture字段
+
+          },
+
+          //删除文件之前的钩子函数
+          handleRemove(file, fileList) {
+              this.$message({
+                  type: 'info',
+                  message: '已删除原有图片',
+                  duration: 1000
+              });
+          },
+          //点击列表中已上传的文件事的钩子函数
+          handlePreview(file) {
+              this.dialogVisible = true;
+          },
+          //上传的文件个数超出设定时触发的函数
+          onExceed(files, fileList) {
+              this.$message({
+                  type: 'info',
+                  message: '最多只能上传一个图片',
+                  duration: 6000
+              });
+          },
+          //文件上传前的前的钩子函数
+          //参数是上传的文件，若返回false，或返回Primary且被reject，则停止上传
+          beforeUpload(file) {
+              const isJPG = file.type === 'image/jpeg';
+              const isGIF = file.type === 'image/gif';
+              const isPNG = file.type === 'image/png';
+              const isBMP = file.type === 'image/bmp';
+              const isLt2M = file.size / 1024 / 1024 < 2;
+
+              if (!isJPG && !isGIF && !isPNG && !isBMP) {
+                  this.$message.error('上传图片必须是JPG/GIF/PNG/BMP 格式!');
+              }
+              if (!isLt2M) {
+                  this.$message.error('上传图片大小不能超过 2MB!');
+              }
+              return (isJPG || isBMP || isGIF || isPNG) && isLt2M;
+          },
+          findByPage() {
+              axios.post('/book/findByPage', {params:[this.pageConf.pageCode, this.pageConf.pageSize,this.search]})
+                  .then(result => (
+                      this.pageConf.totalPage = result.data.total,
+                          this.books = result.data.rows
+                  ))
+                  .catch(error => console.log(error));
+          },
+          //pageSize改变时触发的函数
+          handleSizeChange(val) {
+              this.pageConf.pageSize = val;
+              this.findByPage();
+          },
+          //当前页改变时触发的函数
+          handleCurrentChange(val) {
+              this.pageConf.pageCode = val;
+              this.findByPage();
+          },
+
+
+          deleteBook(id){
+              axios.post('/book/bookDelete',{id:id})
+                  .then(
+                      this.$message({
+                                          message: '删除成功！',
+                                          type: 'success'
+                                      }),
+                      this.searchBooks()
+                  )
+                  .catch(error => console.log(error));
+          },
+          updateBook(upbook){
+              this.$refs[upbook].validate((valid) => {
+                  if (valid) {
+                      axios.post('/book/bookUpdate',{book:this.upbook})
+                          .then(
+                              this.dialog=false,
+                              this.$message({
+                                  message: '修改成功！',
+                                  type: 'success'
+                              }),
+                              this.searchBooks(),
+                              this.picture=[
+                                  {required: true, message: '请选择图片'}
+                              ]
+                          )
+                          .catch(error => console.log(error));
+                  } else {
+                      console.log('error submit!!');
+                      return false;
+                  }
+              });
+          },
+          addBook(addbook){
+              this.$refs[addbook].validate((valid) => {
+                  if (valid) {
+                      axios.post('/book/bookAdd',{book:this.addbook})
+                          .then(
+                              this.$alert('添加成功', '成功', {
+                                  confirmButtonText: '确定',
+                                  callback: action => {
+                                          this.searchBooks(),
+                                          this.resetForm(addbook),
+                                              this.$refs.upload.clearFiles()
+                                  }
+                              })
+                          )
+                          .catch(error => console.log(error));
+                  } else {
+                      console.log('error submit!!');
+                      return false;
+                  }
+              });
+          },
+          searchBooks() {
+              axios.post('/book/bookSearch', {sname: this.sname})
+                  .then(res => (this.books=res.data,this.search=this.sname,this.findByPage(),this.handleCurrentChange(this.pageConf.pageCode)))
+                  .catch(function (error) {
+                      console.log(error);
+                  });
+
+          },
+          toUpbook(book) {
+              axios.post('/book/bookGet', {book:book})
+                  .then(
+                      res => (this.upbook = res.data),
+                      this.dialog = true
+
+                  )
+                  .catch(function (error) {
+                      console.log(error);
+                  });
+          },
+          reup(){
+              axios.post('/book/bookGet', {book: this.upbook})
+                  .then(
+                      res => (this.upbook = res.data),
+
+                  )
+                  .catch(function (error) {
+                      console.log(error);
+                  });
+          },
+          resetForm(formName) {
+              this.$refs[formName].resetFields();
+          },
+          handleClose(done) {
+              this.$confirm('确定要退出修改吗？')
+                  .then(_ => {
+                      this.searchBooks();
+                      setTimeout(() => {
+                          done();
+                      });
+                  })
+                  .catch(_ => {
+                  });
+          }
+      }
+  });
+
+  var cate = Vue.extend({
+      template: '#cate',
+      data() {
+          return {
+              sname: '',
+              dialog: false,
+              cates: [],
+              addcate: {},
+              upcate: {},
+              reupcate:{},
+              search:{},
+              upRules: {
+                  category: [
+                      {required: true, message: '请输入类别名称', trigger: 'change'},
+                      {min: 1, max: 4, message: '长度在 1到 4 个字符', trigger: 'change'}
+                  ]
+              },
+              addRules: {
+                  category: [
+                      {required: true, message: '请输入类别名称', trigger: 'change'},
+                      {min: 1, max: 4, message: '长度在 1到 4 个字符', trigger: 'change'}
+                  ]
+              },
+              pageConf: {
+//设置一些初始值(会被覆盖)
+                  pageCode: 1, //当前页
+                  pageSize: 4, //每页显示的记录数
+                  totalPage: 7, //总记录数
+                  pageOption: [3, 4, 5], //分页选项
+                  handleCurrentChange: function () {
+                      console.log("页码改变了");
+                  }
+              },
+          }
+      },
+      created: function () {
+          this.searchCates();
+      },
+      mounted(){
+      },
+      methods: {
+          findByPage() {
+              axios.post('/cate/findByPage', {params:[this.pageConf.pageCode, this.pageConf.pageSize,this.search]})
+                  .then(result => (
+                      this.pageConf.totalPage = result.data.total,
+                          this.cates = result.data.rows
+                  ))
+                  .catch(error => console.log(error));
+          },
+//pageSize改变时触发的函数
+          handleSizeChange(val) {
+              this.pageConf.pageSize = val;
+              this.findByPage();
+          },
+//当前页改变时触发的函数
+          handleCurrentChange(val) {
+              this.pageConf.pageCode = val;
+              this.findByPage();
+          },
+
+
+          deleteCate(id){
+              axios.post('/cate/cateDelete',{id:id})
+                  .then(
+                      this.$message({
+                                          message: '删除成功！',
+                                          type: 'success'
+                                      }),
+                      this.searchCates()
+                  )
+                  .catch(error => console.log(error));
+          },
+          updateCate(upcate){
+              this.$refs[upcate].validate((valid) => {
+                  if (valid) {
+                      axios.post('/cate/cateUpdate',{cate:this.upcate})
+                          .then(
+                              this.dialog=false,
+                              this.$message({
+                                  message: '修改成功！',
+                                  type: 'success'
+                              }),
+                              this.searchCates()
+                          )
+                          .catch(error => console.log(error));
+                  } else {
+                      console.log('error submit!!');
+                      return false;
+                  }
+              });
+          },
+          addCate(addcate){
+              this.$refs[addcate].validate((valid) => {
+                  if (valid) {
+                      axios.post('/cate/cateAdd',{cate:this.addcate})
+                          .then(
+                              this.$alert('添加成功', '成功', {
+                                  confirmButtonText: '确定',
+                                  callback: action => {
+                                          this.searchCates(),
+                                          this.resetForm(addcate)
+                                  }
+                              })
+
+                          )
+                          .catch(error => console.log(error));
+                  } else {
+                      console.log('error submit!!');
+                      return false;
+                  }
+              });
+          },
+          searchCates() {
+              axios.post('/cate/cateSearch', {sname: this.sname})
+                  .then(res => (this.cates=res.data,this.search=this.sname,this.findByPage(),this.handleCurrentChange(this.pageConf.pageCode)))
+                  .catch(function (error) {
+                      console.log(error);
+                  });
+
+          },
+          toUpcate(cate) {
+              axios.post('/cate/cateGet', {cate:cate})
+                  .then(
+                      res => (this.upcate = res.data),
+                      this.dialog = true,
+
+                  )
+                  .catch(function (error) {
+                      console.log(error);
+                  });
+          },
+          reup(){
+              axios.post('/cate/cateGet', {cate: this.upcate})
+                  .then(
+                      res => (this.upcate = res.data),
+
+                  )
+                  .catch(function (error) {
+                      console.log(error);
+                  });
+          },
+          resetForm(formName) {
+              this.$refs[formName].resetFields();
+          },
+          handleClose(done) {
+              this.$confirm('确定要退出修改吗？')
+                  .then(_ => {
+                      this.searchCates();
+                      setTimeout(() => {
+                          done();
+                      });
+                  })
+                  .catch(_ => {
+                  });
+          }
+      }
+  });
+
+  var router = new VueRouter({
+    routes:[
+      {path:'/user',component:user},
+      {path:'/book',component:book},
+      {path:'/cate',component:cate},
+      {path:'/',component:user}
+    ]
+  });
+
+  new Vue({
+    el:'#app',
+    data(){
+      return{
+        isCollapse:false
+      }
+    },
+    router
+  })
+
+
+</script>
+
+</html>
